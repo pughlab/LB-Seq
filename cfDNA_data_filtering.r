@@ -16,12 +16,13 @@ file.ext <- ".maf"
 projectname <- myarg[2]
 
 # Strand bias filter
-LODfwd_rev_ratio_thr <- 5  # highest allowable fold difference between forward and reverse tumor LOD scores
+LODfwd_rev_ratio_thr <- 5  # highest allowable fold difference between forward and reverse LOD scores
 # Tumor LOD score filter
-LOD_Zscore_thresh <- 20  # the number of median absolute deviations (MADs from the median LOD score
-# Threshold allele frequency in 1000 Genomes data used to call a variant as a germline SNP 
-X1000Gen_thresh <- 0.001
-Fraction_supp_reads <- 0.1 # the minimum fraction of total reads which is used as supporting reads (Alt + Ref count) to call a mutations
+LOD_Zscore_thresh <- 20  # determined using ROC_curve_LOD_score.R script
+# Threshold allele frequency in 1000 Genomes data used to call a variant as a germline SNP
+X1000Gen_thresh <- 0.001  ## Filters based on >= 1% frquency in normal population
+# Specify minimum fraction of total reads which has to be used as supporting reads (Alt + Ref count) to call a mutations
+Fraction_supp_reads <- 0.1 # the sum of ref_allele_counts and alt_allele counts should be at least 10% of total reads
 
 summary_vect <- c("Sample_ID",
                   "Genome_Change",
@@ -127,7 +128,7 @@ for (file in filenames){
   name <- gsub(".processed","",name)
   ctDNA_maf$row_names <- paste(name,ctDNA_maf$Genome_Change,sep="_")
   ctDNA_maf$Sample_ID <- paste(name)
-  ## Convert tumor LOD scores to modified Z-scores = # of Median absolute deviation (MADs)
+  ## Convert tumor LOD scores to modified Z-scores, i.e., the number of Median Absolute Deviations (MADs)
   ## from the median LOD score in each sample
   LOD_scores <- ctDNA_maf$t_lod_fstar
   median_LOD <- as.numeric(median(LOD_scores))
@@ -213,14 +214,6 @@ write.table(filtering_summary, file = paste("Filtering_summary",projectname,"txt
 row.names=FALSE, append = FALSE, na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
 
 # prepare summaries of all mutation calls and filtered somatic calls and write into tables
-      all_summary_maf <- all_ctDNA_maf[,summary_vect]
-      filtered_summary_maf <- filtered_ctDNA_maf[,summary_vect]
-
-#write.table(all_ctDNA_maf, file = paste("All_mutations",projectname,"txt",sep="."),
-#            row.names=FALSE, append = FALSE, na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
-#write.table(all_summary_maf, file = paste("All_summary",projectname,"txt",sep="."),
-#           row.names=FALSE, append = FALSE, na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
-#write.table(filtered_ctDNA_maf, file = paste("Somatic_mutations",projectname,"txt",sep="."),
-#            row.names=FALSE, append = FALSE, na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
+filtered_summary_maf <- filtered_ctDNA_maf[,summary_vect]
 write.table(filtered_summary_maf, file = paste("Somatic_summary",projectname,"txt",sep="."),
             row.names=FALSE, append = FALSE, na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
