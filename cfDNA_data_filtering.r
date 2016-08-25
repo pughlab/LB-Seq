@@ -29,6 +29,7 @@ summary_vect <- c("Sample_ID",
                   "Hugo_Symbol",
                   "Protein_Change",
                   "UniProt_AApos",
+                  "Prot_Change_UniProt",
                   "Variant_Classification",
                   "cDNA_Change",
                   "t_alt_count",
@@ -140,6 +141,12 @@ for (file in filenames){
   all_pop_data <- rbind(all_pop_data, pop_data)
   all_ctDNA_maf <- rbind(all_ctDNA_maf, ctDNA_maf) 
 }
+
+# Create a "Protein_Change_UniProt" column for a different annotation (used by COSMIC) *** important for EGFR 
+all_ctDNA_maf$Protein_Change_start <- substr(all_ctDNA_maf$Protein_Change, 1, 2) 
+all_ctDNA_maf$Protein_Change_end <- substrRight(all_ctDNA_maf$Protein_Change, 1)
+all_ctDNA_maf$Prot_Change_UniProt <- paste(all_ctDNA_maf$Protein_Change_start, all_ctDNA_maf$UniProt_AApos,
+                                           all_ctDNA_maf$Protein_Change_end ,sep="")
 
 ###############################################################
 ##  Filtering of sequencing artifacts and polymerase errors  ##

@@ -8,14 +8,11 @@
 ###############################################################################################
 
 
-
-
-
 ###############################
 #         Variables
 ###############################
 
-group.name <- "NAME"
+group.name <- "1GROUP"
 
 CWD <- "/Users/okis/Data_Analysis/No_DS_MYL/LOD_distribution_plot/analysis/2Groups"
 setwd(CWD)
@@ -29,7 +26,7 @@ file.ext <- ".maf"
 # Tumor LOD score filter
     LOD_Zscore_thresh <- 20  # determined using ROC_curve_LOD_score.R script
 # Threshold allele frequency in 1000 Genomes data used to call a variant as a germline SNP 
-    X1000Gen_thresh <- 0.001  ## Filters based on >= 1% frquency in normal population 
+    X1000Gen_thresh <- 0.001  ## Filters based on >= 0.1% frequency in normal population 
 # Specify the minimum fraction of total reads which has to be used as supporting reads (Alt + Ref count) to call a mutations
     Fraction_supp_reads <- 0.1 # the sum of ref_allele_counts and alt_allele counts should be at least 10% of total reads
 
@@ -38,6 +35,7 @@ file.ext <- ".maf"
                       "Hugo_Symbol",
                       "Protein_Change",
                       "UniProt_AApos",
+                      "Prot_Change_UniProt",
                       "Variant_Classification",
                       "cDNA_Change",
                       "tumor_f",
@@ -98,7 +96,7 @@ file.ext <- ".maf"
       ethnic_SNP_maf <- unique(ethnic_SNP_maf)
       return(ethnic_SNP_maf)
     }
-
+    
 
 ###############################
 #           Main
@@ -173,6 +171,16 @@ write.table(all_pop_data, file = paste("temp","txt",sep="."),
 all_pop_data <- read.table("temp.txt", header = TRUE, sep = "\t", quote = "",
                           comment.char = "#", stringsAsFactors =FALSE)
 
+# Create a "Protein_Change_UniProt" column for a different annotation (used by COSMIC) *** important for EGFR 
+
+      substrRight <- function(x, n){
+        substr(x, nchar(x)-n+1, nchar(x))
+      }
+      x <- all_ctDNA_maf$Protein_Change
+      all_ctDNA_maf$Protein_Change_start <- substr(x, 1, 3) 
+      all_ctDNA_maf$Protein_Change_end <- substrRight(x, 1)
+      all_ctDNA_maf$Prot_Change_UniProt <- paste(all_ctDNA_maf$Protein_Change_start, all_ctDNA_maf$UniProt_AApos,
+                                           all_ctDNA_maf$Protein_Change_end ,sep="")
             
 # Add additional columns in the dataframe for downstreem filtering
       all_ctDNA_maf$skew1 <- all_ctDNA_maf$t_lod_fstar_forward / all_ctDNA_maf$t_lod_fstar_reverse

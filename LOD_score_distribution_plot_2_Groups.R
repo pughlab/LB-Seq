@@ -31,7 +31,7 @@ file.ext <- ".maf"
 # Tumor LOD score filter
     LOD_Zscore_thresh <- 20  # determined using ROC_curve_LOD_score.R script
 # Threshold allele frequency in 1000 Genomes data used to call a variant as a germline SNP 
-    X1000Gen_thresh <- 0.001  ## Filters based on >= 1% frquency in normal population 
+    X1000Gen_thresh <- 0.001  ## Filters based on >= 0.1% frequency in normal population
 # Specify the minimum fraction of total reads which has to be used as supporting reads (Alt + Ref count) to call a mutations
     Fraction_supp_reads <- 0.1 # the sum of ref_allele_counts and alt_allele counts should be at least 10% of total reads
 
@@ -40,6 +40,7 @@ file.ext <- ".maf"
                       "Hugo_Symbol",
                       "Protein_Change",
                       "UniProt_AApos",
+                      "Prot_Change_UniProt",
                       "Variant_Classification",
                       "cDNA_Change",
                       "tumor_f",
@@ -100,7 +101,11 @@ file.ext <- ".maf"
       ethnic_SNP_maf <- unique(ethnic_SNP_maf)
       return(ethnic_SNP_maf)
     }
-
+    
+# Function used for generating protein change column based on UniProt AA change positions
+    substrRight <- function(x, n){
+      substr(x, nchar(x)-n+1, nchar(x))
+    }
 
 ###############################
 #           Main
@@ -168,6 +173,13 @@ filenames <- list.files(path = file.path.1, pattern = file.ext,
       all_pop_data <- rbind(all_pop_data, pop_data)
       all_ctDNA_maf <- rbind(all_ctDNA_maf, ctDNA_maf) 
     }
+    
+# Create a "Protein_Change_UniProt" column for a different annotation (used by COSMIC) *** important for EGFR 
+    x <- all_ctDNA_maf$Protein_Change
+    all_ctDNA_maf$Protein_Change_start <- substr(x, 1, 3) 
+    all_ctDNA_maf$Protein_Change_end <- substrRight(x, 1)
+    all_ctDNA_maf$Prot_Change_UniProt <- paste(all_ctDNA_maf$Protein_Change_start, all_ctDNA_maf$UniProt_AApos,
+                                               all_ctDNA_maf$Protein_Change_end ,sep="") 
     
 all_ctDNA_maf_1 <- all_ctDNA_maf    
 colnames(all_pop_data) <- paste(c("sample_ID", "Total_Mutations", "Median_LOD", "MAD", "LOD_Threshold"))
@@ -312,6 +324,13 @@ for (file in filenames){
   all_pop_data <- rbind(all_pop_data, pop_data)
   all_ctDNA_maf <- rbind(all_ctDNA_maf, ctDNA_maf) 
 }
+
+# Create a "Protein_Change_UniProt" column for a different annotation (used by COSMIC) *** important for EGFR 
+x <- all_ctDNA_maf$Protein_Change
+all_ctDNA_maf$Protein_Change_start <- substr(x, 1, 3) 
+all_ctDNA_maf$Protein_Change_end <- substrRight(x, 1)
+all_ctDNA_maf$Prot_Change_UniProt <- paste(all_ctDNA_maf$Protein_Change_start, all_ctDNA_maf$UniProt_AApos,
+                                           all_ctDNA_maf$Protein_Change_end ,sep="") 
 
 all_ctDNA_maf_2 <- all_ctDNA_maf    
 
