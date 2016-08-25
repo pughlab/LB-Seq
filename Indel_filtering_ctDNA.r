@@ -24,8 +24,8 @@ blacklist <- "/Users/okis/Data_Analysis/file_path/pancan_mutation_blacklist.v10.
 # Set the threshold for low coverage filter (minumum depth of coverage required to keep the data)
 Cov.thresh <- 5000
 
-# Set the threshold for low confidance skewed indels calls (minumum number of calls required 
-# in the forward and reverse direction to support the indel)
+# Set the threshold for low confidance skewed indel calls (minumum number of calls required
+# in the forward and reverse direction to support the indel call)
 Skew.thresh <- 10
 
 summary_vect <- c("Matched_Norm_Sample_Barcode",
@@ -125,7 +125,7 @@ nrow(filtered_ctDNA_indels)
 
 filtered_ctDNA_indels <- filtered_ctDNA_indels[filtered_ctDNA_indels$depth_across_samples >= Cov.thresh,]
 
-# Filter out skewed data (if have < 10 reads from forward or reverse strand)
+# Filter out skewed data (if have < MIN number of reads from forward or reverse strand)
 
 filtered_ctDNA_indels <- filtered_ctDNA_indels[filtered_ctDNA_indels$indel_forward >= Skew.thresh,]
 filtered_ctDNA_indels <- filtered_ctDNA_indels[filtered_ctDNA_indels$indel_reverse >= Skew.thresh,]
