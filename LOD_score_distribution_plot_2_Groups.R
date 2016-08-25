@@ -17,14 +17,12 @@
 
 group1 <- "TRN"
 group2 <- "VAL"
-group3 <- "NBM"
 
 CWD <- "/Users/okis/Data_Analysis/No_DS_MYL/LOD_distribution_plot/analysis/2Groups"
 setwd(CWD)
 
 file.path.1 <- "/Users/okis/Data_Analysis/No_DS_MYL/LOD_distribution_plot/maf/Training"
 file.path.2 <- "/Users/okis/Data_Analysis/No_DS_MYL/LOD_distribution_plot/maf/Validation" 
-file.path.3 <- "/Users/okis/Data_Analysis/No_DS_MYL/LOD_distribution_plot/maf/without_BM"
 file.ext <- ".maf"
 
 
@@ -397,194 +395,42 @@ order.sample.ID = order(all_pop_data_2$sample_ID)
 all_pop_data_2 = all_pop_data_2[order.sample.ID,] 
 
 
-#3. Samples without BM data
-
-# Combined all maf files from ctDNA data directory into one file
-filenames <- list.files(path = file.path.3, pattern = file.ext,
-                        full.names = T, recursive = FALSE,
-                        ignore.case = FALSE, include.dirs = FALSE)
-all_ctDNA_maf <- NULL
-all_pop_data <- NULL
-
-for (file in filenames){
-  ctDNA_maf <- read.table(file, header = TRUE, sep = "\t", quote = "",
-                          comment.char = "#", stringsAsFactors =FALSE)
-  ## remove all calls REJECTED by MuTect as likely sequencer errors
-  ## (only needed if REJECT mutations were included in the MuTect output file)
-  ctDNA_maf <- ctDNA_maf[ctDNA_maf$judgement == "KEEP",]
-  ## remove mutation calls made using a small fraction of total reads
-  ctDNA_maf$total_supp_reads <- ctDNA_maf$t_alt_count + ctDNA_maf$t_ref_count
-  ctDNA_maf$fraction_supp_reads <- ctDNA_maf$total_supp_reads / ctDNA_maf$total_pairs
-  ctDNA_maf <- ctDNA_maf[ctDNA_maf$fraction_supp_reads > Fraction_supp_reads,]
-  ## simplify sample name to study subject ID (MYL-XXX)
-  name <- basename(file)
-  name <- gsub(".call_stats.maf","",name)
-  name <- gsub("-01.bam","",name)    #*** change based on .maf file names ***
-  name <- gsub("-02.bam","",name)
-  name <- gsub("-03.bam","",name)
-  name <- gsub("-04.bam","",name)
-  name <- gsub("-14.bam","",name)
-  name <- gsub("-4.bam","",name)
-  name <- gsub(".bam","",name)
-  name <- gsub(".processed","",name)
-  name <- gsub("myl","MYL",name)
-  name <- gsub("_Tumor","",name)     #*** change based on .maf file names ***
-  name <- gsub("_hyb2","",name)
-  name <- gsub("_ctDNA","",name)
-  name <- gsub("-ctDNA","",name)
-  name <- gsub(" (83 ng)","",name)
-  name <- gsub("-reseq","",name)
-  name <- gsub("-BM","",name)
-  name <- gsub("B1_","",name)
-  name <- gsub("B2_","",name)        #*** change based on .maf file names ***
-  name <- gsub("B3_","",name)
-  name <- gsub("B4_","",name)
-  name <- gsub("B5_","",name)
-  name <- gsub("B6_","",name)
-  name <- gsub("B7_","",name)
-  name <- gsub("B8_","",name)
-  name <- gsub("B9_","",name)
-  name <- gsub("B10_","",name)
-  ctDNA_maf$row_names <- paste(name,ctDNA_maf$Genome_Change,sep="_")
-  ctDNA_maf$Sample_ID <- paste(name)
-  ## Convert tumor LOD scores to modified Z-scores, the number of Median 
-  ## Absolute Deviation (MADs) from the median LOD score in each sample
-  LOD_scores <- ctDNA_maf$t_lod_fstar
-  median_LOD <- as.numeric(median(LOD_scores))
-  MAD_LOD  <- as.numeric(mad(LOD_scores))
-  LOD_threshold <- as.numeric(median_LOD + LOD_Zscore_thresh*MAD_LOD)
-  ctDNA_maf$modified_Z_score <- (ctDNA_maf$t_lod_fstar - median_LOD)/MAD_LOD
-  total_mut <- as.numeric(nrow(ctDNA_maf))
-  pop_data <- c(name, total_mut, median_LOD, MAD_LOD, LOD_threshold)
-  all_pop_data <- rbind(all_pop_data, pop_data)
-  all_ctDNA_maf <- rbind(all_ctDNA_maf, ctDNA_maf) 
-}
-
-all_ctDNA_maf_3 <- all_ctDNA_maf    
-
-colnames(all_pop_data) <- paste(c("sample_ID", "Total_Mutations", "Median_LOD", "MAD", "LOD_Threshold"))
-write.table(all_pop_data, file = paste("temp","txt",sep="."),
-            row.names=FALSE, append = FALSE,na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
-all_pop_data_3 <- read.table("temp.txt", header = TRUE, sep = "\t", quote = "",
-                             comment.char = "#", stringsAsFactors =FALSE)
-all_pop_data_3$group <- paste(group3)
-
-
-# Add additional columns in the dataframe for downstreem filtering
-all_ctDNA_maf$skew1 <- all_ctDNA_maf$t_lod_fstar_forward / all_ctDNA_maf$t_lod_fstar_reverse
-all_ctDNA_maf$skew2 <- all_ctDNA_maf$t_lod_fstar_reverse / all_ctDNA_maf$t_lod_fstar_forward
-filtered_ctDNA_maf <- all_ctDNA_maf
-
-# STEP 1: Remove mutations with strand bias (calls with X-fold difference between Forward and Reverse t_lod_fstar)
-removed_ctDNA_maf_strand_bias <- strand_bias_function_rm(all_ctDNA_maf)
-filtered_ctDNA_maf <- strand_bias_function(all_ctDNA_maf)
-count_filtered_maf_1 <- nrow(filtered_ctDNA_maf)
-count_removed_strand_bias <- nrow(removed_ctDNA_maf_strand_bias)
-
-# STEP 2: Apply LOD score filter: keep only the mutations with t_lod_fstar >= THRESHOLD
-removed_ctDNA_maf_LOD <- filtered_ctDNA_maf[filtered_ctDNA_maf$modified_Z_score < LOD_Zscore_thresh,]
-filtered_ctDNA_maf <- filtered_ctDNA_maf[filtered_ctDNA_maf$modified_Z_score >= LOD_Zscore_thresh,]
-count_filtered_maf_2 <- nrow(filtered_ctDNA_maf)
-count_removed_LOD_thr <- nrow(removed_ctDNA_maf_LOD)
-
-# STEP 3: Filtering validated germline SNPs using Oncotator version 1.5.3.0 annotation data
-removed_ctDNA_maf_valSNP <- filtered_ctDNA_maf[!filtered_ctDNA_maf$dbSNP_Val_Status == "",]
-removed_ctDNA_maf_valSNP <- subset(filtered_ctDNA_maf, as.numeric(as.character(X1000gp3_AF)) >= X1000Gen_thresh)
-val_SNPs_list <- removed_ctDNA_maf_valSNP$Genome_Change
-filtered_ctDNA_maf <- subset(filtered_ctDNA_maf, !(Genome_Change %in% val_SNPs_list))
-
-# STEP 4: Filtering additional SNPs with 1000 Genomes data AF >= X1000Gen_thresh in specific ethnic groups
-ethnic_SNP_maf <- ctDNA_filter_SNP_eth(filtered_ctDNA_maf)
-ethnic_SNPs <- ethnic_SNP_maf$Genome_Change 
-filtered_ctDNA_maf <- subset(filtered_ctDNA_maf, !(Genome_Change %in% ethnic_SNPs))
-count_filtered_maf_3 <- nrow(filtered_ctDNA_maf)
-SNP_maf <- rbind(removed_ctDNA_maf_valSNP, ethnic_SNP_maf)
-count_removed_SNPs <- nrow(SNP_maf)
-
-filtered_ctDNA_maf_3 <- filtered_ctDNA_maf 
-
-# Create filtering data summary
-filter_type    <- c('pre-filtering','Strand Bias (LOD fwd/rev rario)',
-                    "Below LOD Threshold",'Germline SNPs')
-removed_count  <- c(0, count_removed_strand_bias,
-                    count_removed_LOD_thr, count_removed_SNPs)
-remaining_count <- c(nrow(all_ctDNA_maf), count_filtered_maf_1,  
-                     count_filtered_maf_2, count_filtered_maf_3)
-filtering_summary <- data.frame(filter_type, removed_count, remaining_count)
-filtering_summary_3 <- filtering_summary
-
-
-# Plot the distribution of LOD scores and Normalized LOD scores
-
-positive_LOD_maf_3 <- all_ctDNA_maf[all_ctDNA_maf$t_lod_fstar > 0,]
-#positive_filtered_maf <- filtered_ctDNA_maf[filtered_ctDNA_maf$t_lod_fstar > 0,]
-positive_strand_bias <- removed_ctDNA_maf_strand_bias[removed_ctDNA_maf_strand_bias$t_lod_fstar > 0,]
-
-# Create a dataframe with the list of samples without any somatic mutations identified to have a list of samples without any mutations identified!!!
-unique_samples <- NULL
-without_mut_ctDNA_maf <- NULL
-unique_samples <- all_ctDNA_maf[ !duplicated(all_ctDNA_maf$Sample_ID), ]
-samples_with_mut <- filtered_ctDNA_maf$Sample_ID
-without_mut_ctDNA_maf <- subset(unique_samples, !(Sample_ID %in% samples_with_mut))
-without_mut_ctDNA_maf$t_lod_fstar <- 0
-without_mut_ctDNA_maf$modified_Z_score <- 0
-
-filtered_maf <- rbind(filtered_ctDNA_maf,without_mut_ctDNA_maf)
-order.sample.ID = order(filtered_maf$Sample_ID)
-filtered_maf_3 = filtered_maf[order.sample.ID,]
-order.sample.ID = order(SNP_maf$Sample_ID)
-SNP_maf_3 = SNP_maf[order.sample.ID,]
-order.sample.ID = order(positive_strand_bias$Sample_ID)
-strand_bias_3 = positive_strand_bias[order.sample.ID,] 
-order.sample.ID = order(removed_ctDNA_maf_LOD$Sample_ID)
-unremoved_artifacts_3 = removed_ctDNA_maf_LOD[order.sample.ID,] 
-order.sample.ID = order(all_pop_data_3$sample_ID)
-all_pop_data_3 = all_pop_data_3[order.sample.ID,] 
-
 
 ## Combine Data from three groups prior to plotting
 
 positive_LOD_maf_1$order <- as.factor(paste("1"))
 positive_LOD_maf_2$order <- as.factor(paste("2"))
-positive_LOD_maf_3$order <- as.factor(paste("3"))
-positive_LOD_maf_ALL <- rbind(positive_LOD_maf_1,positive_LOD_maf_2,positive_LOD_maf_3)
+positive_LOD_maf_ALL <- rbind(positive_LOD_maf_1,positive_LOD_maf_2)
 positive_LOD_maf_ALL$Sample_ID <- factor(positive_LOD_maf_ALL$Sample_ID,
                                          levels=unique(positive_LOD_maf_ALL$Sample_ID[order(positive_LOD_maf_ALL$order)]))
 
-all_pop_data_ALL <- rbind(all_pop_data_1,all_pop_data_2,all_pop_data_3)
-
 strand_bias_1$order <- as.factor(paste("1"))
 strand_bias_2$order <- as.factor(paste("2"))
-strand_bias_3$order <- as.factor(paste("3"))
-strand_bias_ALL <- rbind(strand_bias_1,strand_bias_2,strand_bias_3)
+strand_bias_ALL <- rbind(strand_bias_1,strand_bias_2)
 strand_bias_ALL$Sample_ID <- factor(strand_bias_ALL$Sample_ID,
                                          levels=unique(strand_bias_ALL$Sample_ID[order(strand_bias_ALL$order)]))
 
 unremoved_artifacts_1$order <- as.factor(paste("1"))
 unremoved_artifacts_2$order <- as.factor(paste("2"))
-unremoved_artifacts_3$order <- as.factor(paste("3"))
-unremoved_artifacts_ALL <- rbind(unremoved_artifacts_1,unremoved_artifacts_2,unremoved_artifacts_3)
+unremoved_artifacts_ALL <- rbind(unremoved_artifacts_1,unremoved_artifacts_2)
 unremoved_artifacts_ALL$Sample_ID <- factor(unremoved_artifacts_ALL$Sample_ID,
                                          levels=unique(unremoved_artifacts_ALL$Sample_ID[order(unremoved_artifacts_ALL$order)]))
 
 SNP_maf_1$order <- as.factor(paste("1"))
 SNP_maf_2$order <- as.factor(paste("2"))
-SNP_maf_3$order <- as.factor(paste("3"))
-SNP_maf_ALL <- rbind(SNP_maf_1,SNP_maf_2,SNP_maf_3)
+SNP_maf_ALL <- rbind(SNP_maf_1,SNP_maf_2)
 SNP_maf_ALL$Sample_ID <- factor(SNP_maf_ALL$Sample_ID,
                                          levels=unique(SNP_maf_ALL$Sample_ID[order(SNP_maf_ALL$order)]))
 
 filtered_maf_1$order <- as.factor(paste("1"))
 filtered_maf_2$order <- as.factor(paste("2"))
-filtered_maf_3$order <- as.factor(paste("3"))
-filtered_maf_ALL <- rbind(filtered_maf_1,filtered_maf_2,filtered_maf_3)
+filtered_maf_ALL <- rbind(filtered_maf_1,filtered_maf_2)
 filtered_maf_ALL$Sample_ID <- factor(filtered_maf_ALL$Sample_ID,
                                          levels=unique(filtered_maf_ALL$Sample_ID[order(filtered_maf_ALL$order)]))
 
 all_pop_data_1$order <- as.factor(paste("1"))
 all_pop_data_2$order <- as.factor(paste("2"))
-all_pop_data_3$order <- as.factor(paste("3"))
-all_pop_data_ALL <- rbind(all_pop_data_1,all_pop_data_2,all_pop_data_3)
+all_pop_data_ALL <- rbind(all_pop_data_1,all_pop_data_2)
 all_pop_data_ALL$sample_ID <- factor(all_pop_data_ALL$sample_ID,
                                          levels=unique(all_pop_data_ALL$sample_ID[order(all_pop_data_ALL$order)]))
 
@@ -660,18 +506,18 @@ dev.off()
 #          DATA SUMMARY TABLES           #
 ##########################################
 
+
 write.table(all_pop_data_ALL, file = paste("LOD_distribution_ALL","txt",sep="."),
             row.names=FALSE, append = FALSE,na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
 
 filtering_summary_1$group <- paste("group1")
 filtering_summary_2$group <- paste("group2")
-filtering_summary_3$group <- paste("group3")
-filtering_summary_ALL <- rbind(filtering_summary_1,filtering_summary_2,filtering_summary_3)
+filtering_summary_ALL <- rbind(filtering_summary_1,filtering_summary_2)
 write.table(filtering_summary_ALL, file = paste("ALL_filtering_summary","txt",sep="."),
             row.names=FALSE, append = FALSE,na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
 
 filtered_summary_maf_ALL <- filtered_maf_ALL[,summary_vect]
 write.table(filtered_summary_maf_ALL, file = paste("ALL_somatic_mutations","txt",sep="."),
             row.names=FALSE, append = FALSE, na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
-
 file.remove(file = paste(CWD,"/temp",".txt",sep=""))
+

@@ -17,7 +17,8 @@
 
 group.name <- "NAME"
 
-setwd("/Users/okis/Data_Analysis/No_DS_MYL/LOD_distribution_plot/analysis")
+CWD <- "/Users/okis/Data_Analysis/No_DS_MYL/LOD_distribution_plot/analysis/2Groups"
+setwd(CWD)
 
 file.path <- "/Users/okis/Data_Analysis/No_DS_MYL/LOD_distribution_plot/maf/Training"
 file.ext <- ".maf"
@@ -245,7 +246,7 @@ all_pop_data = all_pop_data[order.sample.ID,]
 #     LOD Score Distribution Plot        #
 ##########################################
 
-pdf(file = paste("LOD_distribution_plot","ALL","pdf",sep="."), width = 11, height = 7)
+pdf(file = paste("LOD_distribution_plot",group.name,"pdf",sep="."), width = 11, height = 7)
 range <- c(log10(min(positive_LOD_maf$t_lod_fstar)), log10(max(positive_LOD_maf$t_lod_fstar)))
 stripchart(log10(strand_bias$t_lod_fstar) ~ strand_bias$Sample_ID, 
            plot = TRUE, vertical = TRUE, frame.plot = TRUE, ylab="Tumor LOD score", yaxt="n", 
@@ -281,7 +282,7 @@ dev.off()
 
 
 
-pdf(file = paste("LEGEND_and_Somatic_mutations","pdf",sep="."), width = 10, height = 7)
+pdf(file = paste("LEGEND_and_Somatic_mutations",group.name,"pdf",sep="."), width = 10, height = 7)
 range <- c(log10(min(positive_LOD_maf$t_lod_fstar)), log10(max(positive_LOD_maf$t_lod_fstar)))
 stripchart(log10(filtered_maf$t_lod_fstar) ~ filtered_maf$Sample_ID, 
            plot = TRUE, vertical = TRUE, frame.plot = TRUE, ylab="Tumor LOD score", yaxt="n", 
@@ -313,14 +314,14 @@ dev.off()
 #          DATA SUMMARY TABLES           #
 ##########################################
 
-write.table(all_pop_data, file = paste("LOD_distribution_data","txt",sep="."),
+write.table(all_pop_data, file = paste("LOD_distribution_data",group.name,"txt",sep="."),
             row.names=FALSE, append = FALSE,na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
 
-write.table(filtering_summary, file = paste("ALL_filtering_summary","txt",sep="."),
+write.table(filtering_summary, file = paste("ALL_filtering_summary",group.name,"txt",sep="."),
             row.names=FALSE, append = FALSE,na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
 
 filtered_summary_maf <- filtered_maf[,summary_vect]
-write.table(filtered_summary_maf, file = paste("ALL_somatic_mutations","txt",sep="."),
+write.table(filtered_summary_maf, file = paste("ALL_somatic_mutations",group.name,"txt",sep="."),
             row.names=FALSE, append = FALSE, na = "NA", quote = FALSE, sep = "\t", col.names = TRUE)
 
-
+file.remove(file = paste(CWD,"/temp",".txt",sep=""))
