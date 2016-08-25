@@ -20,7 +20,7 @@ LODfwd_rev_ratio_thr <- 5  # highest allowable fold difference between forward a
 # Tumor LOD score filter
 LOD_Zscore_thresh <- 20  # determined using ROC_curve_LOD_score.R script
 # Threshold allele frequency in 1000 Genomes data used to call a variant as a germline SNP
-X1000Gen_thresh <- 0.001  ## Filters based on >= 1% frquency in normal population
+X1000Gen_thresh <- 0.001  ## Filters based on >= 0.1% frequency in normal population
 # Specify minimum fraction of total reads which has to be used as supporting reads (Alt + Ref count) to call a mutations
 Fraction_supp_reads <- 0.1 # the sum of ref_allele_counts and alt_allele counts should be at least 10% of total reads
 
