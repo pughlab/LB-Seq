@@ -179,8 +179,7 @@ all_pop_data <- read.table("temp.txt", header = TRUE, sep = "\t", quote = "",
       x <- all_ctDNA_maf$Protein_Change
       all_ctDNA_maf$Protein_Change_start <- substr(x, 1, 3) 
       all_ctDNA_maf$Protein_Change_end <- substrRight(x, 1)
-      all_ctDNA_maf$Prot_Change_UniProt <- paste(all_ctDNA_maf$Protein_Change_start, all_ctDNA_maf$UniProt_AApos,
-                                           all_ctDNA_maf$Protein_Change_end ,sep="")
+      all_ctDNA_maf$Prot_Change_UniProt <- paste(all_ctDNA_maf$Protein_Change_start, all_ctDNA_maf$UniProt_AApos, all_ctDNA_maf$Protein_Change_end ,sep="")
             
 # Add additional columns in the dataframe for downstreem filtering
       all_ctDNA_maf$skew1 <- all_ctDNA_maf$t_lod_fstar_forward / all_ctDNA_maf$t_lod_fstar_reverse
