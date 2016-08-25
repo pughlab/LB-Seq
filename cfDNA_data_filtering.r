@@ -142,11 +142,14 @@ for (file in filenames){
   all_ctDNA_maf <- rbind(all_ctDNA_maf, ctDNA_maf) 
 }
 
-# Create a "Protein_Change_UniProt" column for a different annotation (used by COSMIC) *** important for EGFR 
-all_ctDNA_maf$Protein_Change_start <- substr(all_ctDNA_maf$Protein_Change, 1, 2) 
-all_ctDNA_maf$Protein_Change_end <- substrRight(all_ctDNA_maf$Protein_Change, 1)
-all_ctDNA_maf$Prot_Change_UniProt <- paste(all_ctDNA_maf$Protein_Change_start, all_ctDNA_maf$UniProt_AApos,
-                                           all_ctDNA_maf$Protein_Change_end ,sep="")
+# Create a "Protein_Change_UniProt" column for a different annotation (used by COSMIC) *** important for EGFR
+substrRight <- function(x, n){
+    substr(x, nchar(x)-n+1, nchar(x))
+}
+x <- all_ctDNA_maf$Protein_Change
+all_ctDNA_maf$Protein_Change_start <- substr(x, 1, 3)
+all_ctDNA_maf$Protein_Change_end <- substrRight(x, 1)
+all_ctDNA_maf$Prot_Change_UniProt <- paste(all_ctDNA_maf$Protein_Change_start, all_ctDNA_maf$UniProt_AApos, all_ctDNA_maf$Protein_Change_end ,sep="")
 
 ###############################################################
 ##  Filtering of sequencing artifacts and polymerase errors  ##
